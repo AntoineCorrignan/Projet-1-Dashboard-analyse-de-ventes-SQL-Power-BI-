@@ -1,0 +1,2 @@
+# Projet-1-Dashboard-analyse-de-ventes-SQL-Power-BI-
+Projet d’analyse des ventes d’une boutique e-commerce fictive réalisé avec Python et Power BI. L’objectif : explorer les performances commerciales, identifier les meilleures ventes et proposer des recommandations stratégiques. J’ai nettoyé et analysé les données, créé des visualisations et un dashboard interactif pour aider à la prise de décision.
