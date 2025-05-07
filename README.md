@@ -21,16 +21,103 @@ Identification de nouveaux indicateurs pertinents.
 Test de la performance et de la précision des requêtes.
 
 📌 Exemples de KPI calculés :
-Chiffre d’affaires par mois et région 📈
-Produits les plus/moins vendus par catégorie 📦
-Taux de recouvrement des créances par client 💰
-Stock sous seuil critique 
+**Chiffre d’affaires par mois et région 📈**
+```
+# Chiffre d’affaires par mois et par région + taux d’évolution mensuel :
+    
+WITH MonthlySales AS (
+    SELECT YEAR(orders.orderDate) AS year, MONTH(orders.orderDate) AS month, offices.city, SUM(quantityOrdered * priceEach) AS totalSales
+    FROM offices
+    JOIN employees ON employees.officeCode = offices.officeCode
+    JOIN customers ON customers.salesRepEmployeeNumber = employees.employeeNumber
+    JOIN orders ON orders.customerNumber = customers.customerNumber
+    JOIN orderdetails ON orderdetails.orderNumber = orders.orderNumber
+    GROUP BY year, month, offices.city
+)
+SELECT year, month, city, totalSales, LAG(totalSales) OVER (PARTITION BY city ORDER BY year, month) AS previousMonthSales,
+    COALESCE(((totalSales - LAG(totalSales) OVER (PARTITION BY city ORDER BY year, month)) / NULLIF(LAG(totalSales) OVER (PARTITION BY city ORDER BY year, month), 0)) * 100,0) AS growthRate
+FROM MonthlySales
+ORDER BY year, month, city DESC;
+```
+
+**Produits les plus/moins vendus par catégorie 📦**
+```
+# produits les plus vendus par catégorie :
+SELECT products.productLine, SUM(orderdetails.quantityOrdered) AS "Quantité_vendue", ROUND(AVG(orderdetails.priceEach),2) AS "Prix_vente_moyen", 
+ROUND(AVG(products.buyPrice),2) AS "Prix_achat_moyen", 
+ROUND(AVG(orderdetails.priceEach),2) - ROUND(AVG(products.buyPrice),2) AS "Marge_brute_each",
+ROUND(AVG(products.MSRP),2) AS "MSRP_moyen",
+ROUND(AVG(orderdetails.priceEach),2) - ROUND(AVG(products.MSRP),2) AS "diff_msrp_px_vente"
+FROM    products
+JOIN    orderdetails ON orderdetails.productCode = products.productCode
+JOIN    orders ON orders.orderNumber = orderdetails.orderNumber
+GROUP BY     products.productLine
+ORDER BY    Quantité_vendue DESC;
+```
+**Taux de recouvrement des créances par client 💰**
+```
+#  Taux de recouvrement des créances par client :
+
+SELECT customers.customerName
+, SUM(DISTINCT orderdetails.quantityOrdered * orderdetails.priceEach) AS "Montant des commandes"
+, SUM(DISTINCT payments.amount) AS "Montant des paiements"
+, SUM(DISTINCT orderdetails.quantityordered*orderdetails.priceeach) - SUM(DISTINCT payments.amount) AS "créance"
+, ROUND((SUM(DISTINCT payments.amount) / SUM(DISTINCT orderdetails.quantityordered*orderdetails.priceeach))*100,2) AS "taux_recouvrement"
+, customers.creditLimit
+, ROUND((SUM(DISTINCT orderdetails.quantityordered*orderdetails.priceeach) - SUM(DISTINCT payments.amount)) / customers.creditLimit*100,2) AS "taux_crédit"
+FROM orderdetails
+JOIN orders on orderdetails.ordernumber = orders.ordernumber
+JOIN customers on orders.customerNumber = customers.customerNumber
+JOIN payments on payments.customerNumber = customers.customerNumber
+GROUP BY customers.customerName, customers.creditLimit
+ORDER BY créance desc;
+```
+**Stock sous seuil critique **
+```
+# Stock des produits sous seuil critique : Identifier les produits dont le stock est faible pour éviter les ruptures.
+
+WITH MonthlySales AS (
+    SELECT YEAR(orders.orderDate) AS year,MONTH(orders.orderDate) AS month,products.productCode, products.productName,products.productLine,SUM(quantityOrdered) AS totalQuantity
+    FROM products
+    JOIN orderdetails ON orderdetails.productCode = products.productCode
+    JOIN orders ON orders.orderNumber = orderdetails.orderNumber
+    GROUP BY year, month, products.productCode,products.productName, products.productLine
+),
+AverageMonthlySales AS (
+    SELECT productName,productLine, AVG(totalQuantity) AS avgMonthlyQuantity
+    FROM MonthlySales
+    GROUP BY productName, productLine
+),
+CriticalThreshold AS (
+    SELECT productName,productLine, avgMonthlyQuantity * 0.50 AS criticalThreshold -- 10% des ventes mensuelles moyennes
+    FROM AverageMonthlySales
+),
+CurrentStock AS (
+    SELECT productName, productLine, quantityInStock
+    FROM products 
+)
+SELECT
+    c.productName, c.productLine, c.quantityInStock, ROUND(ct.criticalThreshold,0) AS SeuilCritique,
+    CASE
+        WHEN c.quantityInStock < ct.criticalThreshold THEN 'ALERTE ROUGE'
+        ELSE 'Tranquille'
+    END AS stockStatus
+FROM CurrentStock c
+JOIN CriticalThreshold ct ON c.productName = ct.productName AND c.productLine = ct.productLine
+ORDER BY c.productName;
+```
+
+>> requêtes SQL ici <<
 
 ### 2️⃣ Partie 2 : Modélisation en Schéma Étoile (OLAP)
 Afin d’optimiser la performance sous Power BI :
 Transformation de la base transactionnelle (OLTP) en modèle analytique (OLAP).
 Création de vues SQL pour les tables de faits et de dimensions.
-📌 Exemple de structure :🛒
+
+**Strucrture de BDD de départ :**
+![image](https://github.com/user-attachments/assets/900d6747-b50d-4bea-9eb1-67acb70b7e94)
+
+**Structure de BDD en étoile après l'avoir retravaillée :**
 
 ### 3️⃣ Partie 3 : Création du Tableau de Bord Power BI
 Importation des vues SQL optimisées.
