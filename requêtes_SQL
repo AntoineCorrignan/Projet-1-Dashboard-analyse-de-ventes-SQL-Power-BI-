@@ -1,0 +1,406 @@
+-- ==========================================
+-- FINANCES
+-- ==========================================
+
+-- Top 10 clients générant le plus de revenus
+SELECT 
+    c.customerNumber, 
+    c.customerName,    
+    SUM(od.quantityOrdered * od.priceEach) AS CA,
+    COUNT(DISTINCT o.orderNumber) AS total_orders, 
+    ROUND(SUM(od.quantityOrdered * od.priceEach) / COUNT(DISTINCT o.orderNumber), 2) AS panier_moyen
+FROM 
+    customers c
+    JOIN orders o ON c.customerNumber = o.customerNumber
+    JOIN orderdetails od ON o.orderNumber = od.orderNumber
+GROUP BY 
+    c.customerNumber
+ORDER BY 
+    CA DESC
+LIMIT 10;
+
+-- Top 10 clients générant le moins de revenus
+SELECT 
+    c.customerNumber, 
+    c.customerName,    
+    SUM(od.quantityOrdered * od.priceEach) AS CA,
+    COUNT(DISTINCT o.orderNumber) AS total_orders, 
+    ROUND(SUM(od.quantityOrdered * od.priceEach) / COUNT(DISTINCT o.orderNumber), 2) AS panier_moyen
+FROM 
+    customers c
+    JOIN orders o ON c.customerNumber = o.customerNumber
+    JOIN orderdetails od ON o.orderNumber = od.orderNumber
+GROUP BY 
+    c.customerNumber
+ORDER BY 
+    CA ASC
+LIMIT 10;
+
+-- Recherche des créances par client
+SELECT 
+    c.customerName, 
+    SUM(od.quantityOrdered * od.priceEach) AS montant_commandes, 
+    SUM((od.quantityOrdered * od.priceEach) - p.amount) AS creance,
+    c.creditLimit AS credit_autorise
+FROM 
+    orderdetails od
+    JOIN orders o ON od.orderNumber = o.orderNumber
+    JOIN customers c ON o.customerNumber = c.customerNumber
+    JOIN payments p ON p.customerNumber = c.customerNumber
+GROUP BY 
+    c.customerName, c.creditLimit
+ORDER BY 
+    creance ASC;
+
+-- Montant moyen des paiements par client
+SELECT 
+    c.customerName, 
+    ROUND(AVG(DISTINCT p.amount), 2) AS paiement_moyen
+FROM 
+    customers c
+    JOIN payments p ON p.customerNumber = c.customerNumber
+GROUP BY 
+    c.customerName
+ORDER BY 
+    paiement_moyen DESC;
+
+-- Clients avec paiement moyen inférieur à la moyenne globale
+SELECT 
+    c.customerName, 
+    ROUND(AVG(DISTINCT p.amount), 2) AS paiement_moyen
+FROM 
+    customers c
+    JOIN payments p ON p.customerNumber = c.customerNumber
+GROUP BY 
+    c.customerName
+HAVING 
+    paiement_moyen < (
+        SELECT ROUND(AVG(amount), 2) FROM payments
+    )
+ORDER BY 
+    paiement_moyen DESC;
+
+-- Croissance des ventes par trimestre
+WITH QuarterSales AS (
+    SELECT 
+        COUNT(o.orderDate) AS total_ventes, 
+        EXTRACT(QUARTER FROM o.orderDate) AS trimestre,  
+        EXTRACT(YEAR FROM o.orderDate) AS annee
+    FROM 
+        orders o
+    GROUP BY 
+        trimestre, annee
+),
+QuarterSalesGrowth AS (
+    SELECT 
+        annee, 
+        trimestre, 
+        total_ventes, 
+        LAG(total_ventes) OVER (PARTITION BY annee ORDER BY trimestre) AS ventes_trim_prec
+    FROM 
+        QuarterSales
+)
+SELECT 
+    annee, 
+    trimestre, 
+    total_ventes, 
+    ventes_trim_prec,
+    CASE 
+        WHEN ventes_trim_prec IS NOT NULL THEN ROUND(((total_ventes - ventes_trim_prec) / ventes_trim_prec) * 100, 2)
+        ELSE NULL
+    END AS taux_croissance
+FROM 
+    QuarterSalesGrowth
+ORDER BY 
+    annee, trimestre;
+
+-- ==========================================
+-- LOGISTIQUE
+-- ==========================================
+
+-- Produits en stock sous seuil critique
+WITH MonthlySales AS (
+    SELECT 
+        YEAR(o.orderDate) AS annee,
+        MONTH(o.orderDate) AS mois,
+        p.productCode, 
+        p.productName,
+        p.productLine,
+        SUM(od.quantityOrdered) AS total_vendu
+    FROM 
+        products p
+        JOIN orderdetails od ON od.productCode = p.productCode
+        JOIN orders o ON o.orderNumber = od.orderNumber
+    GROUP BY 
+        annee, mois, p.productCode, p.productName, p.productLine
+),
+AverageMonthlySales AS (
+    SELECT 
+        productName,
+        productLine, 
+        AVG(total_vendu) AS moyenne_mensuelle
+    FROM 
+        MonthlySales
+    GROUP BY 
+        productName, productLine
+),
+CriticalThreshold AS (
+    SELECT 
+        productName, 
+        productLine, 
+        moyenne_mensuelle * 0.5 AS seuil_critique
+    FROM 
+        AverageMonthlySales
+),
+CurrentStock AS (
+    SELECT 
+        productName, 
+        productLine, 
+        quantityInStock
+    FROM 
+        products 
+)
+SELECT
+    c.productName, 
+    c.productLine, 
+    c.quantityInStock, 
+    ROUND(ct.seuil_critique, 0) AS seuil_critique,
+    CASE
+        WHEN c.quantityInStock < ct.seuil_critique THEN 'SEUIL CRITIQUE ATTEINT'
+        ELSE 'OK'
+    END AS statut_stock
+FROM 
+    CurrentStock c
+    JOIN CriticalThreshold ct ON c.productName = ct.productName AND c.productLine = ct.productLine
+ORDER BY 
+    c.productName;
+
+-- Délai moyen de traitement des commandes
+SELECT 
+    orderDate, 
+    shippedDate, 
+    (shippedDate - orderDate) AS delai_traitement
+FROM 
+    orders 
+ORDER BY 
+    delai_traitement DESC;
+
+-- Moyenne générale des délais de traitement
+SELECT  
+    ROUND(AVG(DATEDIFF(shippedDate, orderDate)), 2) AS delai_moyen_traitement
+FROM 
+    orders;
+
+-- Commandes au-dessus de la moyenne de délai
+SELECT 
+    orderNumber, 
+    orderDate, 
+    DATEDIFF(shippedDate, orderDate) AS delai_traitement
+FROM 
+    orders
+WHERE 
+    DATEDIFF(shippedDate, orderDate) > (
+        SELECT ROUND(AVG(DATEDIFF(shippedDate, orderDate)), 2)
+        FROM orders
+    );
+
+-- Taux d'écoulement des stocks
+SELECT
+    p.productName AS produit,
+    p.quantityInStock AS stock_disponible,
+    SUM(od.quantityOrdered) AS quantite_vendue,
+    ROUND((SUM(od.quantityOrdered) / p.quantityInStock) * 100, 2) AS taux_ecoulement
+FROM
+    products p
+    JOIN orderdetails od ON p.productCode = od.productCode
+GROUP BY
+    p.productName, p.quantityInStock
+ORDER BY
+    taux_ecoulement DESC;
+
+-- Taux d'écoulement avec MAJ du stock tous les 2 mois
+SELECT
+    p.productName AS produit,
+    p.quantityInStock AS stock_disponible,
+    SUM(od.quantityOrdered) AS quantite_vendue,
+    ROUND((SUM(od.quantityOrdered) / p.quantityInStock) * 100 / 24, 2) AS taux_ecoulement_mensuel
+FROM
+    products p
+    JOIN orderdetails od ON p.productCode = od.productCode
+    JOIN orders o ON od.orderNumber = o.orderNumber
+WHERE
+    o.orderDate >= DATE_SUB(CURDATE(), INTERVAL 24 MONTH)
+GROUP BY
+    p.productName, p.quantityInStock
+ORDER BY
+    taux_ecoulement_mensuel DESC;
+
+-- Taux de commandes livrées en retard
+SELECT
+    COUNT(*) AS total_commandes,
+    SUM(CASE WHEN o.shippedDate > o.requiredDate THEN 1 ELSE 0 END) AS commandes_en_retard,
+    ROUND(SUM(CASE WHEN o.shippedDate > o.requiredDate THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) AS taux_retard
+FROM
+    orders o;
+
+-- ==========================================
+-- RH
+-- ==========================================
+
+-- CA par représentant commercial
+SELECT e.employeeNumber, e.lastName, e.firstName,
+       SUM(od.quantityOrdered * od.priceEach) AS CA
+FROM employees e
+JOIN customers c ON c.salesRepEmployeeNumber = e.employeeNumber
+JOIN orders o ON o.customerNumber = c.customerNumber
+JOIN orderdetails od ON od.orderNumber = o.orderNumber
+GROUP BY e.employeeNumber, e.lastName, e.firstName
+ORDER BY CA DESC;
+
+
+-- Ratio commandes/paiements par représentant commercial
+SELECT e.employeeNumber, e.lastName, e.firstName,
+       COUNT(DISTINCT o.orderNumber) AS nb_commandes,
+       COUNT(DISTINCT p.checkNumber) AS nb_paiements,
+       ROUND(COUNT(DISTINCT p.checkNumber) / COUNT(DISTINCT o.orderNumber), 2) AS ratio_commande_paiement,
+       SUM(od.quantityOrdered * od.priceEach) AS montant_commandes,
+       SUM(p.amount) AS montant_paye,
+       ROUND(SUM(p.amount) / SUM(od.quantityOrdered * od.priceEach) * 100, 2) AS taux_recouvrement
+FROM employees e
+JOIN customers c ON c.salesRepEmployeeNumber = e.employeeNumber
+JOIN orders o ON o.customerNumber = c.customerNumber
+LEFT JOIN payments p ON p.customerNumber = c.customerNumber
+JOIN orderdetails od ON od.orderNumber = o.orderNumber
+GROUP BY e.employeeNumber, e.lastName, e.firstName
+ORDER BY taux_recouvrement DESC;
+
+
+-- Performance des bureaux (CA, taille portefeuille, nombre d’employés)
+SELECT o.officeCode, o.city, o.country,
+       SUM(od.quantityOrdered * od.priceEach) AS CA,
+       COUNT(DISTINCT c.customerNumber) AS taille_portefeuille,
+       COUNT(DISTINCT e.employeeNumber) AS nb_employes
+FROM offices o
+JOIN employees e ON e.officeCode = o.officeCode
+JOIN customers c ON c.salesRepEmployeeNumber = e.employeeNumber
+JOIN orders ord ON ord.customerNumber = c.customerNumber
+JOIN orderdetails od ON od.orderNumber = ord.orderNumber
+GROUP BY o.officeCode, o.city, o.country
+ORDER BY CA DESC;
+
+-- ==========================================
+-- VENTES
+-- ==========================================
+
+-- Chiffre d’affaires par mois et par région + taux d’évolution mensuel
+WITH MonthlySales AS (
+    SELECT YEAR(orders.orderDate) AS year, MONTH(orders.orderDate) AS month, offices.city, SUM(quantityOrdered * priceEach) AS totalSales
+    FROM offices
+    JOIN employees ON employees.officeCode = offices.officeCode
+    JOIN customers ON customers.salesRepEmployeeNumber = employees.employeeNumber
+    JOIN orders ON orders.customerNumber = customers.customerNumber
+    JOIN orderdetails ON orderdetails.orderNumber = orders.orderNumber
+    GROUP BY year, month, offices.city
+)
+SELECT year, month, city, totalSales, 
+       LAG(totalSales) OVER (PARTITION BY city ORDER BY year, month) AS previousMonthSales,
+       COALESCE(((totalSales - LAG(totalSales) OVER (PARTITION BY city ORDER BY year, month)) / NULLIF(LAG(totalSales) OVER (PARTITION BY city ORDER BY year, month), 0)) * 100, 0) AS growthRate
+FROM MonthlySales
+ORDER BY year, month, city DESC;
+
+
+-- Marge brute par produit et par catégorie
+SELECT products.productLine, products.productName,
+       SUM(orderdetails.quantityOrdered * orderdetails.priceEach) AS Chiffre_affaire,
+       SUM(orderdetails.quantityOrdered * products.buyPrice) AS Cout_achat,
+       SUM(orderdetails.quantityOrdered * orderdetails.priceEach) - SUM(orderdetails.quantityOrdered * products.buyPrice) AS Marge_brute,
+       ROUND((SUM(orderdetails.quantityOrdered * orderdetails.priceEach) - SUM(orderdetails.quantityOrdered * products.buyPrice)) / NULLIF(SUM(orderdetails.quantityOrdered * orderdetails.priceEach), 0) * 100, 2) AS Taux_marge_brute
+FROM products
+JOIN orderdetails ON orderdetails.productCode = products.productCode
+JOIN orders ON orders.orderNumber = orderdetails.orderNumber
+GROUP BY products.productLine, products.productName
+ORDER BY Marge_brute DESC, products.productLine;
+
+
+-- Produits les plus vendus / prix achat / marge par produit
+SELECT products.productLine, products.productName, 
+       SUM(orderdetails.quantityOrdered) AS Quantité_vendue,
+       ROUND(AVG(orderdetails.priceEach), 2) AS Prix_vente_moyen,
+       ROUND(AVG(products.buyPrice), 2) AS Prix_achat_moyen,
+       ROUND(AVG(orderdetails.priceEach), 2) - ROUND(AVG(products.buyPrice), 2) AS Marge_brute_each,
+       ROUND(AVG(products.MSRP), 2) AS MSRP_moyen,
+       ROUND(AVG(orderdetails.priceEach), 2) - ROUND(AVG(products.MSRP), 2) AS diff_msrp_px_vente
+FROM products
+JOIN orderdetails ON orderdetails.productCode = products.productCode
+JOIN orders ON orders.orderNumber = orderdetails.orderNumber
+GROUP BY products.productLine, products.productName
+ORDER BY Quantité_vendue DESC;
+
+
+-- Produits les plus vendus par catégorie
+SELECT products.productLine, 
+       SUM(orderdetails.quantityOrdered) AS Quantité_vendue,
+       ROUND(AVG(orderdetails.priceEach), 2) AS Prix_vente_moyen,
+       ROUND(AVG(products.buyPrice), 2) AS Prix_achat_moyen,
+       ROUND(AVG(orderdetails.priceEach), 2) - ROUND(AVG(products.buyPrice), 2) AS Marge_brute_each,
+       ROUND(AVG(products.MSRP), 2) AS MSRP_moyen,
+       ROUND(AVG(orderdetails.priceEach), 2) - ROUND(AVG(products.MSRP), 2) AS diff_msrp_px_vente
+FROM products
+JOIN orderdetails ON orderdetails.productCode = products.productCode
+JOIN orders ON orders.orderNumber = orderdetails.orderNumber
+GROUP BY products.productLine
+ORDER BY Quantité_vendue DESC;
+
+
+-- Produits les plus vendus par échelle
+SELECT products.productScale, 
+       SUM(orderdetails.quantityOrdered) AS Quantité_vendue,
+       ROUND(AVG(orderdetails.priceEach), 2) AS Prix_vente_moyen,
+       ROUND(AVG(products.buyPrice), 2) AS Prix_achat_moyen,
+       ROUND(AVG(orderdetails.priceEach), 2) - ROUND(AVG(products.buyPrice), 2) AS Marge_brute_each,
+       ROUND(AVG(products.MSRP), 2) AS MSRP_moyen,
+       ROUND(AVG(orderdetails.priceEach), 2) - ROUND(AVG(products.MSRP), 2) AS diff_msrp_px_vente
+FROM products
+JOIN orderdetails ON orderdetails.productCode = products.productCode
+JOIN orders ON orders.orderNumber = orderdetails.orderNumber
+GROUP BY products.productScale
+ORDER BY Quantité_vendue DESC;
+
+
+-- Taux d’évolution mensuel des ventes par catégorie
+WITH MonthlySales AS (
+    SELECT YEAR(orders.orderDate) AS year, MONTH(orders.orderDate) AS month, products.productLine, SUM(quantityOrdered) AS totalQuantity
+    FROM products
+    JOIN orderdetails ON orderdetails.productCode = products.productCode
+    JOIN orders ON orders.orderNumber = orderdetails.orderNumber
+    GROUP BY year, month, products.productLine
+)
+SELECT year, month, productLine, totalQuantity, 
+       LAG(totalQuantity, 1) OVER (PARTITION BY productLine ORDER BY year, month) AS previousMonthQuantity,
+       (totalQuantity - LAG(totalQuantity, 1) OVER (PARTITION BY productLine ORDER BY year, month)) / NULLIF(LAG(totalQuantity, 1) OVER (PARTITION BY productLine ORDER BY year, month), 0) AS growthRate
+FROM MonthlySales
+ORDER BY productLine, year, month;
+
+
+-- Panier moyen des commandes
+SELECT ROUND(AVG(orderdetails.quantityOrdered * orderdetails.priceEach), 2) AS panier_moyen
+FROM orders
+JOIN orderdetails ON orderdetails.orderNumber = orders.orderNumber;
+
+
+-- Panier moyen par mois
+SELECT YEAR(orders.orderDate) AS year, MONTH(orders.orderDate) AS month, 
+       ROUND(AVG(orderdetails.quantityOrdered * orderdetails.priceEach), 2) AS panier_moyen
+FROM orders
+JOIN orderdetails ON orderdetails.orderNumber = orders.orderNumber
+GROUP BY year, month
+ORDER BY year, month;
+
+
+-- Taux de retour des clients (repeat customers)
+SELECT customers.customerName, 
+       COUNT(DISTINCT orders.orderNumber) AS totalOrders
+FROM customers
+JOIN orders ON orders.customerNumber = customers.customerNumber
+GROUP BY customers.customerName
+ORDER BY totalOrders DESC;
