@@ -114,10 +114,12 @@ Afin d’optimiser la performance sous Power BI :
 Transformation de la base transactionnelle (OLTP) en modèle analytique (OLAP).
 Création de vues SQL pour les tables de faits et de dimensions.
 
-**Strucrture de BDD de départ :**
+**Structure de BDD de départ :**
 ![image](https://github.com/user-attachments/assets/900d6747-b50d-4bea-9eb1-67acb70b7e94)
 
-**Structure de BDD en étoile après l'avoir retravaillée :**
+**Structure de BDD "en étoile" autour de la table principale FACT_orders après l'avoir retravaillée :**
+![image](https://github.com/user-attachments/assets/df711d70-e446-4bb5-af61-f2e6c6a2317e)
+
 
 ### 3️⃣ Partie 3 : Création du Tableau de Bord Power BI
 Importation des vues SQL optimisées.
@@ -129,6 +131,10 @@ Conception de visualisations dynamiques et interactives :
 - Graphiques d’évolution 📊
 - Mise en place de filtres multi-critères (dates, produits, bureaux, commerciaux…)
 - Configuration de l’actualisation quotidienne des données
+
+**Page principale du dashboard "Ventes" :**
+![image](https://github.com/user-attachments/assets/93a214b3-6841-4193-a106-056e6654fb26)
+
 
 ## 📊 Livrables
 📦 Fichier Power BI (.pbix) avec tableau de bord interactif et actualisable.
