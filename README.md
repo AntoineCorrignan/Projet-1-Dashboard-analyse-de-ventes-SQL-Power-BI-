@@ -3,7 +3,10 @@ Projet d’analyse des ventes d’une boutique e-commerce fictive réalisé avec
 
 ## 📌 Contexte
 Dans le cadre de ce projet, nous avons été sollicités par une entreprise spécialisée dans la vente de modèles et de maquettes pour concevoir un tableau de bord dynamique. L'objectif : permettre au directeur de piloter son activité à partir d’indicateurs actualisés quotidiennement.
-La base de données de l’entreprise contient des informations sur les employés, les produits, les commandes, et bien plus encore. Notre rôle est de structurer et analyser ces données pour proposer un tableau de bord fiable et efficace.
+La base de données de l’entreprise contient des informations sur les employés, les produits, les commandes, et bien plus encore. 
+Nous sommes une équipe de 4 Data Analyst Junior, et notre rôle est de structurer et analyser ces données pour proposer un tableau de bord fiable et efficace.
+Je suis personnellement en charge de la partie "Ventes" du projet.
+
 
 ## 🎯 Objectifs
 Construire un tableau de bord Power BI articulé autour de 4 thématiques :
