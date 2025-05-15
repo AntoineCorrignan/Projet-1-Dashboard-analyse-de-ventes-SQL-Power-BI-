@@ -144,21 +144,21 @@ Conception de visualisations dynamiques et interactives :
 ** Focus "Produits" :**
 ![image](https://github.com/user-attachments/assets/786cc953-f3ba-4405-bd0f-34d0ba33dfe5)
 
-### 4️⃣ Partie 4 : Challenges et observations
-#### 🔧 Challenges techniques :
-Travaillant sur Mac, j’ai dû recourir à l’installation d’une machine virtuelle (UTM) afin d’exécuter Power BI Desktop, non disponible nativement sur macOS.
-La structure initiale de la base de données n’était pas optimisée pour la création d’un tableau de bord performant. Les relations entre les tables limitaient la possibilité de réaliser certains calculs et visuels pertinents.
-➡️ J’ai donc restructuré le modèle en distinguant des tables de faits et des tables de dimensions, en m’inspirant des principes de la méthode MERISE afin de garantir cohérence et efficacité dans l’analyse.
-#### 📈 Observations – Analyse des ventes :
-Forte saisonnalité des ventes constatée en fin d’année, avec un pic marqué avant Noël — un phénomène attendu pour une entreprise spécialisée dans les jouets.
-L’entreprise opère sur trois zones géographiques : Amérique du Nord, Europe et Océanie.
-➡️ Le marché américain est de loin le plus important en termes de chiffre d’affaires, suivi par la France et l’Espagne.
-100 % des clients ont effectué des achats répétés, témoignant d’une clientèle exclusivement récurrente, ce qui est notable dans le secteur BtoB.
-Analyse des prix : les produits sont vendus en dessous du prix public conseillé (MSRP), ce qui s’explique probablement par la pratique de tarifs dégressifs liés aux ventes en gros.
-➡️ Malgré cela, l’entreprise dégage une marge brute moyenne de près de 40 %, confirmant une stratégie tarifaire rentable.
-Tous les produits restent profitables, bien que le taux de marge varie selon les références. Aucun article ne présente de performance déficitaire.
-Deux clients se démarquent par leur poids stratégique dans le chiffre d’affaires et leur régularité de commandes.
-➡️ Il serait pertinent de mettre en place des actions spécifiques pour valoriser leur fidélité et sécuriser leur relation commerciale (suivi dédié, avantages exclusifs, conditions préférentielles…).
+### 4️⃣ Partie 4 : Challenges et observations 
+#### 🔧 Challenges techniques : 
+Travaillant sur Mac, j’ai dû recourir à l’installation d’une machine virtuelle (UTM) afin d’exécuter Power BI Desktop, non disponible nativement sur macOS. 
+La structure initiale de la base de données n’était pas optimisée pour la création d’un tableau de bord performant. Les relations entre les tables limitaient la possibilité de réaliser certains calculs et visuels pertinents. 
+➡️ J’ai donc restructuré le modèle en distinguant des tables de faits et des tables de dimensions, en m’inspirant des principes de la méthode MERISE afin de garantir cohérence et efficacité dans l’analyse. 
+#### 📈 Observations – Analyse des ventes : 
+Forte saisonnalité des ventes constatée en fin d’année, avec un pic marqué avant Noël — un phénomène attendu pour une entreprise spécialisée dans les jouets. 
+L’entreprise opère sur trois zones géographiques : Amérique du Nord, Europe et Océanie. 
+➡️ Le marché américain est de loin le plus important en termes de chiffre d’affaires, suivi par la France et l’Espagne. 
+100 % des clients ont effectué des achats répétés, témoignant d’une clientèle exclusivement récurrente, ce qui est notable dans le secteur BtoB. 
+Analyse des prix : les produits sont vendus en dessous du prix public conseillé (MSRP), ce qui s’explique probablement par la pratique de tarifs dégressifs liés aux ventes en gros. 
+➡️ Malgré cela, l’entreprise dégage une marge brute moyenne de près de 40 %, confirmant une stratégie tarifaire rentable. 
+Tous les produits restent profitables, bien que le taux de marge varie selon les références. Aucun article ne présente de performance déficitaire. 
+Deux clients se démarquent par leur poids stratégique dans le chiffre d’affaires et leur régularité de commandes. 
+➡️ Il serait pertinent de mettre en place des actions spécifiques pour valoriser leur fidélité et sécuriser leur relation commerciale (suivi dédié, avantages exclusifs, conditions préférentielles…). 
 
 
 ## 📊 Livrables
