@@ -117,7 +117,7 @@ Création de vues SQL pour les tables de faits et de dimensions.
 **Structure de BDD de départ :**
 ![image](https://github.com/user-attachments/assets/900d6747-b50d-4bea-9eb1-67acb70b7e94)
 
-**Structure de BDD "en étoile" autour de la table principale FACT_orders après l'avoir retravaillée :**
+**Structure de BDD "en étoile" après l'avoir retravaillée, avec deux tables de faits (la principale FACT_order, et FACT_payments), cinq tables de dimensions, et une table "mesures" :**
 ![image](https://github.com/user-attachments/assets/df711d70-e446-4bb5-af61-f2e6c6a2317e)
 
 
