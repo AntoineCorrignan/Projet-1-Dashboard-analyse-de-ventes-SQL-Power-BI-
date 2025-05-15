@@ -138,10 +138,10 @@ Conception de visualisations dynamiques et interactives :
 **Page principale du dashboard "Ventes" :**
 ![image](https://github.com/user-attachments/assets/93a214b3-6841-4193-a106-056e6654fb26)
 
-** Focus "Clients" : **
+**Focus "Clients" : **
 ![image](https://github.com/user-attachments/assets/cdb814db-5e59-44d3-b76f-c11c07718190)
 
-** Focus "Produits" :**
+**Focus "Produits" :**
 ![image](https://github.com/user-attachments/assets/786cc953-f3ba-4405-bd0f-34d0ba33dfe5)
 
 ### 4️⃣ Partie 4 : Challenges et observations 
